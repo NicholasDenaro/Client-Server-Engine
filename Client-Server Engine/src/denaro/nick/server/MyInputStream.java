@@ -91,6 +91,15 @@ public class MyInputStream
 	}
 	
 	/**
+	 * Reads a double from the buffer
+	 * @return - a double
+	 */
+	public double readDouble()
+	{
+		return(buffer.getDouble());
+	}
+	
+	/**
 	 * Reads a char from the buffer
 	 * @return - a char
 	 */

@@ -103,6 +103,18 @@ public class Message
 	}
 	
 	/**
+	 * Adds a double to the buffer, increasing the size appropriately
+	 * @param d - the double to add to the buffer
+	 * @return - this message
+	 */
+	public Message addDouble(double d)
+	{
+		increaseBuffer(8);
+		buffer.putDouble(d);
+		return(this);
+	}
+	
+	/**
 	 * Adds a char to the buffer, increasing the size appropriately
 	 * @param c - the char to add to the buffer
 	 * @return - this message

@@ -75,10 +75,10 @@ public abstract class Server extends Thread
 		System.out.println("Server shutting down.");
 	}
 	
-	public ArrayList<Client> clients()
+	/*public ArrayList<Client> clients()
 	{
 		return (ArrayList<Client>)(clients.values());
-	}
+	}*/
 	
 	private HashMap<Socket,Client> clients;
 	private ServerSocket server;

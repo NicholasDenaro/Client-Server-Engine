@@ -3,7 +3,7 @@ import java.io.IOException;
 import java.net.Socket;
 
 
-public abstract class Client extends Thread
+public abstract class Client
 {
 	public Client(Socket socket) throws IOException
 	{
@@ -22,32 +22,31 @@ public abstract class Client extends Thread
 	 */
 	public abstract void handleMessages(MyInputStream in, int messageid) throws IOException;
 	
-	@Override
 	public void run()
 	{
-		running=true;
-		while(running)
+		try
 		{
-			try
+			in.read();
+			while(!in.isEmpty())
 			{
-				in.read();
-				while(!in.isEmpty())
-				{
-					byte messageid=in.readByte();
-					handleMessages(in,messageid);
-				}
+				byte messageid=in.readByte();
+				handleMessages(in,messageid);
 			}
-			catch(Exception ex)
-			{
-				ex.printStackTrace();
-				running=false;
-			}
+		}
+		catch(Exception ex)
+		{
+			//ex.printStackTrace();
+			running=false;
 		}
 	}
 	
 	public void addMessage(Message message)
 	{
 		out.addMessage(message);
+		if(out.size() > maxMessageSize())
+		{
+			sendMessages();
+		}
 	}
 	
 	public void sendMessages()

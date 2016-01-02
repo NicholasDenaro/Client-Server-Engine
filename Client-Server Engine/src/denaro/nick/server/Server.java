@@ -9,6 +9,7 @@ import java.net.Socket;
 import java.net.SocketAddress;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.regex.Pattern;
 
 
 public abstract class Server extends Thread
@@ -26,9 +27,23 @@ public abstract class Server extends Thread
 			hostname=hostname.substring(0,hostname.indexOf(':'));
 		}
 		server.setReuseAddress(true);
-		server.bind(new InetSocketAddress(hostname,port));
+		
+		String ip = Pattern.matches("[0-9]\\.[0-9]\\.[0-9]", hostname) ? hostname : InetAddress.getByName(hostname).getHostAddress();
+		
+		System.out.println("Attempting to bind to: "+ip+":"+port);
+		server.bind(new InetSocketAddress(ip,port));
 		System.out.println("server bound to: "+server.getInetAddress());
-		clients=new HashMap<Socket,Client>();
+		
+		this.clientPoolSize = 100;
+		
+		pools = new ArrayList<ClientPool>();
+	}
+	
+	public Server(String hostname, int port, int clientPoolSize) throws IOException
+	{
+		this(hostname,port);
+		
+		this.clientPoolSize = clientPoolSize;
 	}
 	
 	public static String getInput()
@@ -59,11 +74,39 @@ public abstract class Server extends Thread
 			try
 			{
 				Socket socket=server.accept();
-				if(!clients.containsKey(socket))
+				
+				if(pools.size() == 0)
 				{
-					Client client=newClient(socket);
-					clients.put(socket,client);
-					client.start();
+					ClientPool pool = new ClientPool(clientPoolSize);
+					pools.add(pool);
+					pool.start();
+				}
+				
+				if(!isClientConnectedAlready(socket))
+				{
+					Client client = newClient(socket);
+					socket.setSoTimeout(10);
+					socket.setKeepAlive(true);
+					socket.setReceiveBufferSize(256);
+					socket.setTcpNoDelay(false);
+					socket.setSoLinger(true, 1000*10);
+					if(pools.get(pools.size() - 1).isFull())
+					{
+						ClientPool pool = new ClientPool(this.clientPoolSize);
+						pool.start();
+						pools.add(pool);
+						//System.out.println("Added pool");
+					}
+					
+					if(!pools.get(pools.size() - 1).addClient(socket,client))
+					{
+						System.out.println("failed to add...");
+					}
+					
+				}
+				else
+				{
+					
 				}
 			}
 			catch(IOException ex)
@@ -75,11 +118,34 @@ public abstract class Server extends Thread
 		System.out.println("Server shutting down.");
 	}
 	
+	private boolean isClientConnectedAlready(Socket socket)
+	{
+		for(ClientPool pool:pools)
+		{
+			if(pool.hasSocket(socket))
+			{
+				return true;
+			}
+		}
+		
+		return false;
+	}
+	
+	public void broadcastMessage(Message mes)
+	{
+		for(ClientPool pool:pools)
+		{
+			pool.broadcastMessage(mes);
+		}
+	}
+	
 	/*public ArrayList<Client> clients()
 	{
 		return (ArrayList<Client>)(clients.values());
 	}*/
-	
+
+	private int clientPoolSize;
+	private ArrayList<ClientPool> pools;
 	private HashMap<Socket,Client> clients;
 	private ServerSocket server;
 	private boolean running;

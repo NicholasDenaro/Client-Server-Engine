@@ -30,16 +30,44 @@ public class MyInputStream
 	 */
 	public void read() throws IOException
 	{
-		byte[] byts=new byte[4];
-		in.read(byts);
-		int size=ByteBuffer.wrap(byts).getInt();
+		//read the size
+		if(bodyBuffer == null)
+		{
+			byte[] byts = new byte[sizeBuffer.remaining()];
+			int numRead = in.read(byts);
+			if(numRead < sizeBuffer.remaining())
+			{
+				sizeBuffer.put(byts, 0, numRead);
+				return;
+			}
+			
+			sizeBuffer.put(byts);
+			sizeBuffer.position(0);
+			
+			bodyBuffer = ByteBuffer.allocate(sizeBuffer.getInt());
+			sizeBuffer.clear();
+		}
 		
-		buffer=ByteBuffer.allocate(size);
-		byte[] bytes=new byte[size];
-		in.read(bytes);
-		buffer.put(bytes);
+		//read the body
+		byte[] bytes = new byte[bodyBuffer.remaining()];
+		int numRead = in.read(bytes);
+		if(numRead < bodyBuffer.remaining())
+		{
+			bodyBuffer.put(bytes, 0, numRead);
+			return;
+		}
+		
+		//put the stuff into the local buffer
+		ByteBuffer newbuffer = ByteBuffer.allocate(bodyBuffer.capacity() + buffer.remaining());
+		newbuffer.put(buffer.array(),buffer.position(),buffer.remaining());
+		newbuffer.put(bodyBuffer.array());
+		buffer = newbuffer;
 		buffer.position(0);
+		bodyBuffer = null;
 	}
+	
+	private ByteBuffer sizeBuffer = ByteBuffer.allocate(4);
+	private ByteBuffer bodyBuffer;
 	
 	public boolean isEmpty()
 	{

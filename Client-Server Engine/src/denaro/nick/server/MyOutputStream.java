@@ -20,6 +20,7 @@ public class MyOutputStream
 	public void addMessage(Message message)
 	{
 		messages.add(message);
+		size+=messages.size();
 	}
 	
 	/**
@@ -29,20 +30,26 @@ public class MyOutputStream
 	 */
 	public void flush(int maxSize) throws IOException
 	{
-		int size=4;
+		int flushSize=4;
 		ByteBuffer buffer=ByteBuffer.allocate(maxSize+4);
 		buffer.putInt(buffer.capacity());
 		//System.out.println("buffer capacity: "+buffer.capacity());
-		while(messages.peek()!=null&&size+messages.peek().size()<=buffer.capacity())
+		while(messages.peek()!=null&&flushSize+messages.peek().size()<=buffer.capacity())
 		{
 			//System.out.println("Messgae written.");
-			size+=messages.peek().size();
+			flushSize+=messages.peek().size();
 			buffer.put(messages.pop().bytes());
 		}
-		buffer.putInt(0,size-4);
-		out.write(buffer.array(),0,size);
+		buffer.putInt(0,flushSize-4);
+		out.write(buffer.array(),0,flushSize);
+		size-=flushSize;
 		//System.out.println("flush size: "+size);
 		out.flush();
+	}
+	
+	public int size()
+	{
+		return size;
 	}
 	
 	/**
@@ -53,6 +60,8 @@ public class MyOutputStream
 	{
 		out.close();
 	}
+	
+	private int size;
 	
 	/** The queue for messages*/
 	private LinkedList<Message> messages;

@@ -22,6 +22,13 @@ public class Message
 		this((byte)id);
 	}
 	
+	public Message(Message mes)
+	{
+		this.size = mes.size;
+		buffer=ByteBuffer.allocate(size);
+		buffer.put(mes.buffer);
+	}
+	
 	/**
 	 * Accesses the byte array of the buffer
 	 * @return - a byte array that is represented by the buffer
